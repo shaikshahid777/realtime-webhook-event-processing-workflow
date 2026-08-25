@@ -1,0 +1,195 @@
+{
+  "name": "New User Webhook Event Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-user",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a6df6139-2374-4900-b338-5b9842093b87",
+      "name": "New User Webhook (POST)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        96
+      ],
+      "webhookId": "ae1cf7f6-73c6-4342-a879-800ee361e89d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "token-check",
+              "leftValue": "={{ $json.headers[\"x-webhook-token\"] }}",
+              "rightValue": "<__PLACEHOLDER_VALUE__Expected X-Webhook-Token value__>",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c489ccda-056f-4eab-8edf-b2923e9f85a1",
+      "name": "Validate X-Webhook-Token",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "norm-name",
+              "name": "name",
+              "value": "={{ $json.body.name.toString().trim().replace(/\\s+/g, \" \").toTitleCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "norm-email",
+              "name": "email",
+              "value": "={{ $json.body.email.toString().trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "norm-ts",
+              "name": "receivedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "57afca31-62c0-440c-990d-1e6cc0241f33",
+      "name": "Normalize User Profile",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"success\", message: \"User accepted\", user: { name: $json.name, email: $json.email, receivedAt: $json.receivedAt } }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "80604007-c689-4fea-8b7b-c9dedfd60551",
+      "name": "Respond 200 Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"status\": \"error\", \"message\": \"Forbidden: invalid or missing X-Webhook-Token header\" }",
+        "options": {
+          "responseCode": 403,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "740a6825-666f-4e74-93ce-9ef75509a15b",
+      "name": "Respond 403 Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        448,
+        192
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "New User Webhook (POST)": {
+      "main": [
+        [
+          {
+            "node": "Validate X-Webhook-Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate X-Webhook-Token": {
+      "main": [
+        [
+          {
+            "node": "Normalize User Profile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 403 Forbidden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize User Profile": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "022e8abc-e14c-4051-8fce-8bf4dd29f66f",
+  "meta": {
+    "instanceId": "201381d913fa9e78389f7093cb99cedc70c766251a500f897db19feccfda3bd0"
+  },
+  "nodeGroups": [],
+  "id": "ywp8Spw76KfxyYou",
+  "tags": []
+}
